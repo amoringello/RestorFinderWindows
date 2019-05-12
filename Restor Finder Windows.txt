@@ -1,0 +1,36 @@
+-- Restor Finder Windows
+property allPaths : ""
+property tabCount : 0
+
+on newFinderTab(pad)
+	tell application "Finder"
+		activate
+		set target of front window to pad
+	end tell
+end newFinderTab
+
+set this_file to (((path to preferences) as string) & "windowtabs.txt")
+set tabCount to 0
+set allPaths to read file this_file
+repeat with aPath in (every paragraph in allPaths)
+	if length of aPath is not 0 then
+		if first character of aPath is equal to "$" then
+			tell application "Finder"
+				make new Finder window with properties {toolbar visible:true}
+				set the bounds of front window to {(word 2 of aPath), (word 4 of aPath), (word 6 of aPath), (word 8 of aPath)}
+				--set the position of front window to {(word 4 of aPath), (word 6 of aPath)}
+			end tell
+			set tabCount to 0
+		else
+			if tabCount > 0 then
+				tell application "System Events" to keystroke "t" using command down
+			end if
+			
+			try
+				newFinderTab(aPath)
+				set tabCount to tabCount + 1
+			end try
+		end if
+	end if
+end repeat
+

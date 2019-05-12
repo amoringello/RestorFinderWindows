@@ -1,0 +1,106 @@
+-- Save Finder Windows
+(*
+ARROW KEY CODES
+
+LEFT: (key code 123)
+RIGHT: key code 124)
+UP: (key code 126)
+DOWN: (key code 125)
+*)
+
+property allIndexes : ""
+property allPaths : ""
+property allWindows : 0
+
+property curIndex : ""
+property curPath : ""
+
+property curBounds : ""
+
+-- ------------------------------------------------------------------------------
+
+on write_to_file(this_data, target_file, append_data)
+	try
+		set the target_file to the target_file as string
+		set the open_target_file to open for access file target_file with write permission
+		if append_data is false then set eof of the open_target_file to 0
+		write this_data to the open_target_file starting at eof
+		close access the open_target_file
+		return true
+	on error
+		try
+			close access file target_file
+		end try
+		return false
+	end try
+end write_to_file
+
+-- ------------------------------------------------------------------------------
+
+on getFinderWindowTabs()
+	-- only get info if window is valid
+	try
+		tell application "Finder"
+			activate
+			set curPath to (target of front window as alias) as string
+			set curIndex to ((bounds of target of front window) as string) & (name of front window)
+		end tell
+	end try
+	-- log "getFinderWindowsTabes()"
+	-- log curPath
+	-- log curIndex
+end getFinderWindowTabs
+
+-- ------------------------------------------------------------------------------
+
+display alert "Do you want to save open folder locations? " buttons {"No", "Yes"}
+if button returned of result = "Yes" then
+	
+	tell application "Finder"
+		set allWindows to count of windows
+	end tell
+	
+	set allIndexes to ""
+	set allPaths to ""
+	
+	set curIndex to ""
+	set curPath to ""
+	
+	repeat with w from 1 to allWindows
+		tell application "Finder"
+			activate
+			set {TID, AppleScript's text item delimiters} to {AppleScript's text item delimiters, "$"}
+			set curBounds to bounds of window w as text
+			set AppleScript's text item delimiters to TID
+			activate window w
+		end tell
+		-- Use current bounds later, only with valid window bounds
+		set tmpPaths to "$" & curBounds & return
+		-- log "All Paths so far1:"
+		-- log allPaths
+		
+		getFinderWindowTabs()
+		repeat while curIndex is not in allIndexes
+			-- Make cure window contents is valid
+			if curPath is not equal to "" then
+				set allIndexes to allIndexes & curIndex & ","
+				-- Window is valid, append bounds info 
+				if tmpPaths is not equal to "" then
+					set allPaths to allPaths & tmpPaths
+					-- clear tmpPaths so it isn't re-used. Important to keep windows properly tabbed
+					set tmpPaths to ""
+				end if
+				-- Window is valid, append path info
+				set allPaths to allPaths & curPath & return
+			end if
+			-- log "All Paths so far2: "
+			-- log allPaths
+			
+			tell application "System Events" to key code 124 using {shift down, command down}
+			getFinderWindowTabs()
+		end repeat
+	end repeat
+	
+	set this_file to (((path to preferences) as string) & "windowtabs.txt")
+	my write_to_file(allPaths, this_file, false)
+end if
